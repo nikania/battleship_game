@@ -24,6 +24,30 @@ Read the full tutorial [here](https://book.dojoengine.org/cairo/hello-dojo.html)
 
 ---
 
+# Run it locally!
+Now that we have some theory out of the way, lets build the Dojo project!
+
+```sozo build```
+That compiled the components and system into an artifact that can be deployed! Simple as that!
+
+Now lets deploy it to Katana! First we need to get Katana running:
+
+`katana --disable-fee`
+Success! Katana should now be running locally on your machine. Now lets deploy!
+
+`sozo migrate --name test`
+This will deploy the artifact to Katana.
+
+Add the world address to the bottom of the file:
+
+`world_address = "..."`
+This establishes the world address for your project. You can then run commands like:
+
+`sozo execute spawn`
+By doing so, you've just activated the spawn system. You now have a local world that you can interact with.
+
+
+
 ## Contribution
 
 This starter project is a constant work in progress and contributions are greatly appreciated!
