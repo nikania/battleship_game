@@ -4,23 +4,17 @@ mod initiate_system {
     use starknet::ContractAddress;
     use debug::PrintTrait;
 
-    use battleship_game::components::{Game, GameTurn, Player, GameStatus, Square};
+    use battleship_game::components::common::{Game, GameTurn, Team, GameStatus, Square};
 
-    fn execute(ctx: Context, first_address: ContractAddress, second_address: ContractAddress) {
-        let game_id = pedersen::pedersen(first_address.into(), second_address.into());
+    fn execute(ctx: Context, blue: ContractAddress, red: ContractAddress) {
+        let game_id = pedersen::pedersen(blue.into(), red.into());
 
         set!(
             ctx.world,
-            Game {
-                game_id,
-                winner: Option::None,
-                status: GameStatus::Preparation,
-                first: first_address,
-                second: second_address
-            }
+            Game { game_id, winner: Option::None, status: GameStatus::Preparation, blue, red }
         );
 
-        set!(ctx.world, GameTurn { game_id, attacker: Player::First });
+        set!(ctx.world, GameTurn { game_id, attacker: Team::Blue });
 
         let mut y: u8 = 0;
         //fill battlefield with empty squares 10x10
@@ -53,8 +47,8 @@ mod tests {
     use core::debug::PrintTrait;
     use starknet::ContractAddress;
     use dojo::test_utils::spawn_test_world;
-    use battleship_game::components::{
-        Game, game, GameTurn, game_turn, Square, square, GameStatus, Player
+    use battleship_game::components::common::{
+        Game, game, GameTurn, game_turn, Square, square, GameStatus, Team
     };
 
     use battleship_game::systems::initiate_system;
@@ -90,10 +84,10 @@ mod tests {
         let game: Game = get!(world, (game_id), (Game));
         assert(game.status == GameStatus::Preparation, 'status should be prep');
         assert(game.winner == Option::None, 'should be no winner');
-        assert(game.first == first, 'should be first');
-        assert(game.second == second, 'should be second');
+        assert(game.blue == first, 'should be first');
+        assert(game.red == second, 'should be second');
 
         let game_turn = get!(world, (game_id), (GameTurn));
-        assert(game_turn.attacker == Player::First, 'first player first turn');
+        assert(game_turn.attacker == Team::Blue, 'Blue player first turn');
     }
 }
