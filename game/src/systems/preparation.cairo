@@ -23,15 +23,24 @@ mod preparation_system {
 
         let mut coord = check_coordinates(ship, init_coord, fin_coord);
 
-        loop {
-            let opt = coord.pop_front();
-            if opt == Option::None {
-                break;
+        match team {
+            Team::Blue => {
+                check_unoccupied(Team::Blue, @coord);
+                loop {
+                    let opt_coord = coord.pop_front();
+                    if opt_coord == Option::None {
+                        break;
+                    }
+                    let (x, y) = opt_coord.unwrap();
+                    set!(
+                        ctx.world,
+                        (BlueGrid { square: Square { game_id, x, y }, ship: Option::Some(ship) })
+                    );
+                }
+            },
+            Team::Red => {
+                check_unoccupied(Team::Red, @coord);
             }
-            let (x, y) = opt.unwrap();
-            set!(
-                ctx.world, (BlueGrid { square: Square { game_id, x, y }, ship: Option::Some(ship) })
-            );
         }
     }
 
@@ -39,6 +48,14 @@ mod preparation_system {
         match team {
             Team::Blue => {
                 assert(game.blue == addr, 'wrong caller');
+            // let mut fleet = get!(ctx.world, (game.game_id), (BlueFleet));
+            // match ship {
+            //     // todo make possible replacements
+            //     Carrier => assert(fleet.carrier != 0, 'already placed'), //1x4
+            //     Battleship => assert(fleet.battleship != 0, 'already placed'), //1x3
+            //     Submarine => assert(fleet.submarine != 0, 'already placed'), //1x2
+            //     PatrolBoat => assert(fleet.boat != 0, 'already placed')
+            // }
             },
             Team::Red => {
                 assert(game.red == addr, 'wrong caller');
@@ -48,10 +65,68 @@ mod preparation_system {
 
     use array::ArrayTrait;
     fn check_coordinates(ship: Ship, init_coord: (u8, u8), fin_coord: (u8, u8)) -> Array<(u8, u8)> {
+        let (x1, y1) = init_coord;
+        assert(x1 >= 0 && x1 < 10, 'init x coord wrong');
+        assert(y1 >= 0 && y1 < 10, 'init x coord wrong');
+        let (x2, y2) = fin_coord;
+        assert(x2 >= 0 && x2 < 10, 'x coord wrong');
+        assert(y2 >= 0 && y2 < 10, 'x coord wrong');
+
+        assert(x1 == x2 || y1 == y2, 'ship is bended');
         let mut a = ArrayTrait::new();
-        a.append((1, 1));
-        a.append((1, 2));
+        if x1 == x2 {
+            let mut len = check_ship_len(ship, y1, y2);
+
+            loop {
+                let y = if y1 < y2 {
+                    y1 + len
+                } else {
+                    y2 + len
+                };
+                a.append((x1, y));
+                if len == 0 {
+                    break;
+                }
+                len -= 1;
+            };
+        }
+        if y1 == y2 {
+            let mut len = check_ship_len(ship, x1, x2);
+
+            loop {
+                let x = if x1 < x2 {
+                    x1 + len
+                } else {
+                    x2 + len
+                };
+                a.append((x, y1));
+                if len == 0 {
+                    break;
+                }
+                len -= 1;
+            };
+        }
         a
+    }
+
+    fn check_ship_len(ship: Ship, c1: u8, c2: u8) -> u8 {
+        let len: u8 = if c1 > c2 {
+            c1 - c2
+        } else {
+            c2 - c1
+        };
+        match ship {
+            Ship::Carrier => assert(len == 3, 'incorrect size'), //1x4
+            Ship::Battleship => assert(len == 2, 'incorrect size'), //1x3
+            Ship::Submarine => assert(len == 1, 'incorrect size'), //1x2
+            Ship::PatrolBoat => assert(len == 0, 'incorrect size') //1x1
+        };
+        len
+    }
+
+    fn check_unoccupied(team: Team, coord: @Array<(u8, u8)>) {
+        //TODO
+        assert(true, '');
     }
 }
 
@@ -107,7 +182,33 @@ mod tests {
 
     #[test]
     #[available_gas(20000000000000000)]
-    fn ship_placement_correct() {
+    fn ship_placement_boat_correct() {
+        let world = init();
+        let first = first();
+        let second = second();
+        let id = game_id();
+
+        let mut calldata = array::ArrayTrait::<core::felt252>::new();
+        calldata.append(id);
+        calldata.append(Team::Blue.into());
+        calldata.append(first.into());
+        calldata.append(Ship::PatrolBoat.into());
+        calldata.append(1);
+        calldata.append(1);
+        calldata.append(1);
+        calldata.append(1);
+        // array![id, Team::Blue.into(), first.into(), Ship::Submarine.into(), (1,1).into(), (1,2).into()];
+        world.execute('preparation_system'.into(), calldata);
+
+        let b2: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (BlueGrid));
+        let b3: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 2 }), (BlueGrid));
+        assert(b2.ship.unwrap() == Ship::PatrolBoat, '(1,1) not boat');
+        assert(b3.ship == Option::None, '(1,2) not empty');
+    }
+
+    #[test]
+    #[available_gas(20000000000000000)]
+    fn ship_placement_submarine_correct() {
         let world = init();
         let first = first();
         let second = second();
@@ -120,14 +221,46 @@ mod tests {
         calldata.append(Ship::Submarine.into());
         calldata.append(1);
         calldata.append(1);
+        calldata.append(0);
         calldata.append(1);
-        calldata.append(2);
         // array![id, Team::Blue.into(), first.into(), Ship::Submarine.into(), (1,1).into(), (1,2).into()];
         world.execute('preparation_system'.into(), calldata);
 
+        let a2: BlueGrid = get!(world, (Square { game_id: id, x: 0, y: 1 }), (BlueGrid));
         let b2: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (BlueGrid));
         let b3: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 2 }), (BlueGrid));
+        assert(a2.ship.unwrap() == Ship::Submarine, '(0,1) not submarine');
         assert(b2.ship.unwrap() == Ship::Submarine, '(1,1) not submarine');
-        assert(b3.ship.unwrap() == Ship::Submarine, '(1,2) not submarine');
+        assert(b3.ship == Option::None, '(1,2) not empty');
+    }
+
+    #[test]
+    #[available_gas(20000000000000000)]
+    fn ship_placement_battleship_correct() {
+        let world = init();
+        let first = first();
+        let second = second();
+        let id = game_id();
+
+        let mut calldata = array::ArrayTrait::<core::felt252>::new();
+        calldata.append(id);
+        calldata.append(Team::Blue.into());
+        calldata.append(first.into());
+        calldata.append(Ship::Battleship.into());
+        calldata.append(2);
+        calldata.append(1);
+        calldata.append(0);
+        calldata.append(1);
+        // array![id, Team::Blue.into(), first.into(), Ship::Submarine.into(), (1,1).into(), (1,2).into()];
+        world.execute('preparation_system'.into(), calldata);
+
+        let a2: BlueGrid = get!(world, (Square { game_id: id, x: 0, y: 1 }), (BlueGrid));
+        let b2: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (BlueGrid));
+        let c2: BlueGrid = get!(world, (Square { game_id: id, x: 2, y: 1 }), (BlueGrid));
+        let b3: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 2 }), (BlueGrid));
+        assert(a2.ship.unwrap() == Ship::Battleship, '(0,1) not battleship');
+        assert(b2.ship.unwrap() == Ship::Battleship, '(1,1) not battleship');
+        assert(c2.ship.unwrap() == Ship::Battleship, '(1,1) not battleship');
+        assert(b3.ship == Option::None, '(1,2) not empty');
     }
 }

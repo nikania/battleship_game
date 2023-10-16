@@ -18,9 +18,9 @@ impl SquarePrintTrait of PrintTrait<Square> {
     }
 }
 
-#[derive(Component, SerdeLen, Drop, Serde, Copy)]
+#[derive(Component, SerdeLen, Drop, Serde, Copy, PartialEq)]
 enum Shot {
-    Unnkown,
+    Unknown,
     Missed,
     Hit
 }
@@ -28,7 +28,7 @@ enum Shot {
 impl ShotPrintTrait of PrintTrait<Shot> {
     fn print(self: Shot) {
         match self {
-            Shot::Unnkown => 'Unnkown'.print(),
+            Shot::Unknown => 'Unknown'.print(),
             Shot::Missed => 'Missed'.print(),
             Shot::Hit => 'Hit'.print(),
         }

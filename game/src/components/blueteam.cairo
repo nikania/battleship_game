@@ -2,10 +2,10 @@
 struct BlueFleet {
     #[key]
     game_id: felt252,
-    Carrier: u8,
-    Battleship: u8,
-    Submarine: u8,
-    PatrolBoat: u8,
+    carrier: u8,
+    battleship: u8,
+    submarine: u8,
+    boat: u8,
 }
 
 use battleship_game::components::common::{
