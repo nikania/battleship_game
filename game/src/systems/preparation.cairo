@@ -5,7 +5,7 @@ mod preparation_system {
     use starknet::ContractAddress;
 
     use battleship_game::components::common::{
-        Game, GameTurn, Team, GameStatus, Ship, S, TeamIntoFelt
+        Game, GameTurn, Team, GameStatus, Ship, Square, TeamIntoFelt
     };
     use battleship_game::components::blueteam::{BlueFleet, BlueGrid};
 
@@ -29,7 +29,9 @@ mod preparation_system {
                 break;
             }
             let (x, y) = opt.unwrap();
-            set!(ctx.world, (BlueGrid { square: S { game_id, x, y }, ship: Option::Some(ship) }));
+            set!(
+                ctx.world, (BlueGrid { square: Square { game_id, x, y }, ship: Option::Some(ship) })
+            );
         }
     }
 
@@ -66,7 +68,7 @@ mod tests {
     use dojo::world::{IWorldDispatcherTrait, IWorldDispatcher};
 
     use battleship_game::components::common::{
-        Game, game, GameTurn, game_turn, Square, square, GameStatus, Team, Ship, S, TeamIntoFelt
+        Game, game, GameTurn, game_turn, GameStatus, Team, Ship, Square, TeamIntoFelt
     };
     use battleship_game::components::blueteam::{BlueFleet, BlueGrid};
     use battleship_game::systems::{initiate_system, preparation_system};
@@ -89,7 +91,6 @@ mod tests {
         let mut components = array::ArrayTrait::new();
         components.append(game::TEST_CLASS_HASH);
         components.append(game_turn::TEST_CLASS_HASH);
-        components.append(square::TEST_CLASS_HASH);
 
         //systems
         let mut systems = array::ArrayTrait::new();
@@ -124,8 +125,8 @@ mod tests {
         // array![id, Team::Blue.into(), first.into(), Ship::Submarine.into(), (1,1).into(), (1,2).into()];
         world.execute('preparation_system'.into(), calldata);
 
-        let b2: BlueGrid = get!(world, (S { game_id: id, x: 1, y: 1 }), (BlueGrid));
-        let b3: BlueGrid = get!(world, (S { game_id: id, x: 1, y: 2 }), (BlueGrid));
+        let b2: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (BlueGrid));
+        let b3: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 2 }), (BlueGrid));
         assert(b2.ship.unwrap() == Ship::Submarine, '(1,1) not submarine');
         assert(b3.ship.unwrap() == Ship::Submarine, '(1,2) not submarine');
     }

@@ -3,31 +3,18 @@ use dojo::database::storage::StorageSize;
 use debug::PrintTrait;
 
 /// Coordinates of square of battlefield
-#[derive(Component, SerdeLen, Drop, Serde, Copy)]
-struct Square {
-    #[key]
-    game_id: felt252,
-    #[key]
-    x: u8, // 1 to 15, should be less than 16
-    #[key]
-    y: u8,
-    ship: Option<Ship>
-}
-
 #[derive(SerdeLen, Drop, Serde, Copy)]
-struct S {
-    // #[key]
+struct Square {
     game_id: felt252,
-    // #[key]
     x: u8, // 1 to 15, should be less than 16
-    // #[key]
     y: u8,
-//slot: 
 }
 
-impl SPrintTrait of PrintTrait<S> {
-    fn print(self: S) {
-        's'.print()
+impl SquarePrintTrait of PrintTrait<Square> {
+    fn print(self: Square) {
+        'Square'.print();
+        self.x.print();
+        self.y.print();
     }
 }
 

@@ -9,20 +9,20 @@ struct BlueFleet {
 }
 
 use battleship_game::components::common::{
-    S, Shot, ShotPrintTrait, OptionShotPrintTrait, ShotStorageSizeTrait, OptionShotStorageSizeTrait,
+    Shot, ShotPrintTrait, OptionShotPrintTrait, ShotStorageSizeTrait, OptionShotStorageSizeTrait,
     Square, Ship, ShipPrintTrait, ShipStorageSizeTrait, OptionShipPrintTrait,
     OptionShipStorageSizeTrait
 };
 #[derive(Component, SerdeLen, Drop, Serde, Copy)]
 struct BlueGrid {
     #[key]
-    square: S,
+    square: Square,
     ship: Option<Ship>
 }
 
 #[derive(Component, SerdeLen, Drop, Serde, Copy)]
 struct BlueOpponentGrid {
     #[key]
-    square: S,
+    square: Square,
     shot: Shot
 }

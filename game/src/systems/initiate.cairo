@@ -15,30 +15,6 @@ mod initiate_system {
         );
 
         set!(ctx.world, GameTurn { game_id, attacker: Team::Blue });
-
-        let mut y: u8 = 0;
-        //fill battlefield with empty squares 10x10
-        loop {
-            if y > 9 {
-                break;
-            }
-            set!(
-                ctx.world,
-                (
-                    Square { game_id, x: 0, y, ship: Option::None },
-                    Square { game_id, x: 1, y, ship: Option::None },
-                    Square { game_id, x: 2, y, ship: Option::None },
-                    Square { game_id, x: 3, y, ship: Option::None },
-                    Square { game_id, x: 4, y, ship: Option::None },
-                    Square { game_id, x: 5, y, ship: Option::None },
-                    Square { game_id, x: 6, y, ship: Option::None },
-                    Square { game_id, x: 7, y, ship: Option::None },
-                    Square { game_id, x: 8, y, ship: Option::None },
-                    Square { game_id, x: 9, y, ship: Option::None },
-                )
-            );
-            y += 1;
-        };
     }
 }
 
@@ -48,7 +24,7 @@ mod tests {
     use starknet::ContractAddress;
     use dojo::test_utils::spawn_test_world;
     use battleship_game::components::common::{
-        Game, game, GameTurn, game_turn, Square, square, GameStatus, Team
+        Game, game, GameTurn, game_turn, Square, GameStatus, Team
     };
 
     use battleship_game::systems::initiate_system;
@@ -67,7 +43,6 @@ mod tests {
         let mut components = array::ArrayTrait::new();
         components.append(game::TEST_CLASS_HASH);
         components.append(game_turn::TEST_CLASS_HASH);
-        components.append(square::TEST_CLASS_HASH);
 
         //systems
         let mut systems = array::ArrayTrait::new();
