@@ -16,7 +16,7 @@ mod preparation_system {
         addr: ContractAddress,
         ship: Ship,
         init_coord: (u8, u8),
-        fin_coord: (u8, u8)
+        fin_coord: (u8, u8),
     ) {
         let game: Game = get!(ctx.world, (game_id), (Game));
         initial_checks(@team, @game, @addr);
@@ -188,16 +188,9 @@ mod tests {
         let second = second();
         let id = game_id();
 
-        let mut calldata = array::ArrayTrait::<core::felt252>::new();
-        calldata.append(id);
-        calldata.append(Team::Blue.into());
-        calldata.append(first.into());
-        calldata.append(Ship::PatrolBoat.into());
-        calldata.append(1);
-        calldata.append(1);
-        calldata.append(1);
-        calldata.append(1);
-        // array![id, Team::Blue.into(), first.into(), Ship::Submarine.into(), (1,1).into(), (1,2).into()];
+        let mut calldata = array![
+            id, Team::Blue.into(), first.into(), Ship::PatrolBoat.into(), 1, 1, 1, 1
+        ];
         world.execute('preparation_system'.into(), calldata);
 
         let b2: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (BlueGrid));
@@ -214,16 +207,9 @@ mod tests {
         let second = second();
         let id = game_id();
 
-        let mut calldata = array::ArrayTrait::<core::felt252>::new();
-        calldata.append(id);
-        calldata.append(Team::Blue.into());
-        calldata.append(first.into());
-        calldata.append(Ship::Submarine.into());
-        calldata.append(1);
-        calldata.append(1);
-        calldata.append(0);
-        calldata.append(1);
-        // array![id, Team::Blue.into(), first.into(), Ship::Submarine.into(), (1,1).into(), (1,2).into()];
+        let mut calldata = array![
+            id, Team::Blue.into(), first.into(), Ship::Submarine.into(), 1, 1, 0, 1
+        ];
         world.execute('preparation_system'.into(), calldata);
 
         let a2: BlueGrid = get!(world, (Square { game_id: id, x: 0, y: 1 }), (BlueGrid));
@@ -242,16 +228,9 @@ mod tests {
         let second = second();
         let id = game_id();
 
-        let mut calldata = array::ArrayTrait::<core::felt252>::new();
-        calldata.append(id);
-        calldata.append(Team::Blue.into());
-        calldata.append(first.into());
-        calldata.append(Ship::Battleship.into());
-        calldata.append(2);
-        calldata.append(1);
-        calldata.append(0);
-        calldata.append(1);
-        // array![id, Team::Blue.into(), first.into(), Ship::Submarine.into(), (1,1).into(), (1,2).into()];
+        let mut calldata = array![
+            id, Team::Blue.into(), first.into(), Ship::Battleship.into(), 2, 1, 0, 1
+        ];
         world.execute('preparation_system'.into(), calldata);
 
         let a2: BlueGrid = get!(world, (Square { game_id: id, x: 0, y: 1 }), (BlueGrid));
