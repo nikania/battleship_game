@@ -7,7 +7,7 @@ mod preparation_system {
     use battleship_game::components::common::{
         Game, GameTurn, Team, GameStatus, Ship, Square, TeamIntoFelt
     };
-    use battleship_game::components::blueteam::{BlueFleet, BlueGrid};
+    use battleship_game::components::blueteam::{BlueFleet, BlueGrid, BlueReady};
 
     fn execute(
         ctx: Context,
@@ -36,12 +36,13 @@ mod preparation_system {
                         ctx.world,
                         (BlueGrid { square: Square { game_id, x, y }, ship: Option::Some(ship) })
                     );
-                }
+                };
+                set!(ctx.world, (BlueReady { game_id, ready: true }));
             },
             Team::Red => {
                 check_unoccupied(Team::Red, @coord);
             }
-        }
+        };
     }
 
     fn initial_checks(team: @Team, game: @Game, addr: @ContractAddress) {
@@ -66,11 +67,11 @@ mod preparation_system {
     use array::ArrayTrait;
     fn check_coordinates(ship: Ship, init_coord: (u8, u8), fin_coord: (u8, u8)) -> Array<(u8, u8)> {
         let (x1, y1) = init_coord;
-        assert(x1 >= 0 && x1 < 10, 'init x coord wrong');
-        assert(y1 >= 0 && y1 < 10, 'init x coord wrong');
+        assert(x1 >= 0 && x1 < 4, 'init x coord wrong');
+        assert(y1 >= 0 && y1 < 4, 'init x coord wrong');
         let (x2, y2) = fin_coord;
-        assert(x2 >= 0 && x2 < 10, 'x coord wrong');
-        assert(y2 >= 0 && y2 < 10, 'x coord wrong');
+        assert(x2 >= 0 && x2 < 4, 'x coord wrong');
+        assert(y2 >= 0 && y2 < 4, 'x coord wrong');
 
         assert(x1 == x2 || y1 == y2, 'ship is bended');
         let mut a = ArrayTrait::new();
@@ -145,7 +146,7 @@ mod tests {
     use battleship_game::components::common::{
         Game, game, GameTurn, game_turn, GameStatus, Team, Ship, Square, TeamIntoFelt
     };
-    use battleship_game::components::blueteam::{BlueFleet, BlueGrid};
+    use battleship_game::components::blueteam::{BlueFleet, BlueGrid, BlueReady};
     use battleship_game::systems::{initiate_system, preparation_system};
 
     fn first() -> ContractAddress {
@@ -197,6 +198,9 @@ mod tests {
         let b3: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 2 }), (BlueGrid));
         assert(b2.ship.unwrap() == Ship::PatrolBoat, '(1,1) not boat');
         assert(b3.ship == Option::None, '(1,2) not empty');
+
+        let blueready: BlueReady = get!(world, (id), (BlueReady));
+        assert(blueready.ready, 'should be ready');
     }
 
     #[test]

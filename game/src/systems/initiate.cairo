@@ -5,7 +5,7 @@ mod initiate_system {
     use debug::PrintTrait;
 
     use battleship_game::components::common::{Game, GameTurn, Team, GameStatus, Square, Shot};
-    use battleship_game::components::blueteam::{BlueGrid, BlueOpponentGrid, BlueFleet};
+    use battleship_game::components::blueteam::{BlueGrid, BlueOpponentGrid, BlueFleet, BlueReady};
 
     fn execute(ctx: Context, blue: ContractAddress, red: ContractAddress) {
         let game_id = pedersen::pedersen(blue.into(), red.into());
@@ -20,7 +20,7 @@ mod initiate_system {
         // TODO prepare empty waters
         let mut y: u8 = 0;
         loop {
-            if y > 9 {
+            if y > 3 {
                 break;
             }
             set!(
@@ -30,12 +30,6 @@ mod initiate_system {
                     BlueGrid { square: Square { game_id, x: 1, y }, ship: Option::None },
                     BlueGrid { square: Square { game_id, x: 2, y }, ship: Option::None },
                     BlueGrid { square: Square { game_id, x: 3, y }, ship: Option::None },
-                    BlueGrid { square: Square { game_id, x: 4, y }, ship: Option::None },
-                    BlueGrid { square: Square { game_id, x: 5, y }, ship: Option::None },
-                    BlueGrid { square: Square { game_id, x: 6, y }, ship: Option::None },
-                    BlueGrid { square: Square { game_id, x: 7, y }, ship: Option::None },
-                    BlueGrid { square: Square { game_id, x: 8, y }, ship: Option::None },
-                    BlueGrid { square: Square { game_id, x: 9, y }, ship: Option::None },
                 )
             );
             y += 1;
@@ -43,7 +37,7 @@ mod initiate_system {
         // TODO prepare unnown opponent waters
         let mut y: u8 = 0;
         loop {
-            if y > 9 {
+            if y > 3 {
                 break;
             }
             set!(
@@ -53,19 +47,16 @@ mod initiate_system {
                     BlueOpponentGrid { square: Square { game_id, x: 1, y }, shot: Shot::Unknown },
                     BlueOpponentGrid { square: Square { game_id, x: 2, y }, shot: Shot::Unknown },
                     BlueOpponentGrid { square: Square { game_id, x: 3, y }, shot: Shot::Unknown },
-                    BlueOpponentGrid { square: Square { game_id, x: 4, y }, shot: Shot::Unknown },
-                    BlueOpponentGrid { square: Square { game_id, x: 5, y }, shot: Shot::Unknown },
-                    BlueOpponentGrid { square: Square { game_id, x: 6, y }, shot: Shot::Unknown },
-                    BlueOpponentGrid { square: Square { game_id, x: 7, y }, shot: Shot::Unknown },
-                    BlueOpponentGrid { square: Square { game_id, x: 8, y }, shot: Shot::Unknown },
-                    BlueOpponentGrid { square: Square { game_id, x: 9, y }, shot: Shot::Unknown }
                 )
             );
             y += 1;
         };
 
         // todo set fleets
-        set!(ctx.world, (BlueFleet { game_id, carrier: 1, battleship: 2, submarine: 3, boat: 4 }));
+        // set!(ctx.world, (BlueFleet { game_id, carrier: 1, battleship: 2, submarine: 3, boat: 4 }));
+
+        // not ready for battle
+        set!(ctx.world, (BlueReady { game_id, ready: false }));
     }
 }
 
@@ -84,7 +75,7 @@ mod tests {
         Game, game, GameTurn, game_turn, Square, GameStatus, Team, Shot
     };
     use battleship_game::systems::initiate_system;
-    use battleship_game::components::blueteam::{BlueGrid, BlueOpponentGrid, BlueFleet};
+    use battleship_game::components::blueteam::{BlueGrid, BlueOpponentGrid, BlueFleet, BlueReady};
 
     #[test]
     #[available_gas(200000000000000000)]
@@ -118,16 +109,18 @@ mod tests {
         let game_turn = get!(world, (game_id), (GameTurn));
         assert(game_turn.attacker == Team::Blue, 'Blue player first turn');
 
-        let bluegrid78 = get!(world, (Square { game_id, x: 7, y: 8 }), (BlueGrid));
+        let bluegrid78 = get!(world, (Square { game_id, x: 3, y: 0 }), (BlueGrid));
         assert(bluegrid78.ship == Option::None, 'square not empty');
 
-        let blueoppgrid49 = get!(world, (Square { game_id, x: 7, y: 8 }), (BlueOpponentGrid));
+        let blueoppgrid49 = get!(world, (Square { game_id, x: 3, y: 3 }), (BlueOpponentGrid));
         assert(blueoppgrid49.shot == Shot::Unknown, 'square not unnknown');
 
-        let bluefleet: BlueFleet = get!(world, (game_id), (BlueFleet));
-        assert(bluefleet.carrier == 1, 'carrier wrong count');
-        assert(bluefleet.battleship == 2, 'battleship wrong count');
-        assert(bluefleet.submarine == 3, 'submarine wrong count');
-        assert(bluefleet.boat == 4, 'boat wrong count');
+        let blueready: BlueReady = get!(world, (game_id), (BlueReady));
+        assert(!blueready.ready, 'should be not ready');
+    // let bluefleet: BlueFleet = get!(world, (game_id), (BlueFleet));
+    // assert(bluefleet.carrier == 1, 'carrier wrong count');
+    // assert(bluefleet.battleship == 2, 'battleship wrong count');
+    // assert(bluefleet.submarine == 3, 'submarine wrong count');
+    // assert(bluefleet.boat == 4, 'boat wrong count');
     }
 }

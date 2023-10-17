@@ -11,14 +11,13 @@ mod attack_system {
     };
     use battleship_game::components::blueteam::{BlueFleet, BlueGrid};
 
-    fn execute(
-        ctx: Context, //game_id: felt252, player: ContractAddress, 
-         ref list: Array<u8>
-    ) { // let game: Game = get!(ctx.world, (game_id), (Game));
-        '1'.print();
-        let mut len = list.len();
-        len.print();
-        '2'.print();
+    fn execute(ctx: Context, game_id: felt252, player: ContractAddress,//ref list: Array<u8>
+    ) {
+        let game: Game = get!(ctx.world, (game_id), (Game));
+    // let a = list.pop_front().unwrap(); //unwrap failed
+    // a.print();
+    // let a = list.pop_front().unwrap();
+    // a.print();
     }
 }
 
@@ -40,19 +39,19 @@ mod tests {
     use battleship_game::components::blueteam::{BlueFleet, BlueGrid};
     use battleship_game::systems::{initiate_system, preparation_system, attack_system};
 
-    fn first() -> ContractAddress {
+    fn get_first() -> ContractAddress {
         starknet::contract_address_const::<0x01>()
     }
-    fn second() -> ContractAddress {
+    fn get_second() -> ContractAddress {
         starknet::contract_address_const::<0x02>()
     }
     fn game_id() -> felt252 {
-        pedersen::pedersen(first().into(), second().into())
+        pedersen::pedersen(get_first().into(), get_second().into())
     }
 
     fn init() -> IWorldDispatcher {
-        let first = first();
-        let second = second();
+        let first = get_first();
+        let second = get_second();
 
         // components
         let mut components = array::ArrayTrait::new();
@@ -77,20 +76,21 @@ mod tests {
     #[available_gas(20000000000000)]
     fn testttt() {
         let world = init();
-        let first = first();
-        let second = second();
+        let first = get_first();
+        let second = get_second();
         let id = game_id();
 
         let mut calldata = array::ArrayTrait::<core::felt252>::new();
-        //array![id, first.into()];
+        calldata.append(id);
+        calldata.append(first.into());
 
-        calldata.append(1.into());
-        calldata.append(1.into());
+        // calldata.append(1.into()); //not sure how to pass array to 'execute()' function
         // calldata.append(1.into());
         // calldata.append(1.into());
+        // calldata.append(1.into());
 
-        'calldata'.print();
+        // 'calldata'.print();
         world.execute('attack_system'.into(), calldata);
-        'atacck called'.print();
+    // 'atacck called'.print();
     }
 }

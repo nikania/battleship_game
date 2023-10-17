@@ -26,3 +26,19 @@ struct BlueOpponentGrid {
     square: Square,
     shot: Shot
 }
+
+#[derive(Component, SerdeLen, Drop, Serde, Copy)]
+struct BlueReady {
+    #[key]
+    game_id: felt252,
+    ready: bool,
+}
+// impl BlueReadyStorageSize of dojo::StorageSize<BlueReady> {
+//     fn unpacked_size() -> usize {
+//         252 + 1
+//     }
+//     fn packed_size() -> usize {
+//         252 + 1
+//     }
+// }
+
