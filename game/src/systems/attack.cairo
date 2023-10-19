@@ -1,28 +1,79 @@
-#[system]
-mod attack_system {
+use dojo::world::{IWorldDispatcher, IWorldDispatcherTrait};
+use starknet::{ContractAddress, ClassHash};
+
+// define the interface
+#[starknet::interface]
+trait IActions<TContractState> {
+    fn attack(self: @TContractState, game_id: felt252, list: Array<u8>);
+}
+
+#[dojo::contract]
+mod actions {
+    use starknet::{ContractAddress, get_caller_address};
     use core::debug::PrintTrait;
-    use core::array::ArrayTrait;
-    use core::option::OptionTrait;
-    use dojo::world::Context;
-    use starknet::ContractAddress;
 
-    use battleship_game::components::common::{
-        Game, GameTurn, Team, GameStatus, Ship, Square, TeamIntoFelt
-    };
-    use battleship_game::components::blueteam::{BlueFleet, BlueGrid};
+    use super::IActions;
 
-    fn execute(ctx: Context, game_id: felt252, player: ContractAddress,//ref list: Array<u8>
-    ) {
-        let game: Game = get!(ctx.world, (game_id), (Game));
-    // let a = list.pop_front().unwrap(); //unwrap failed
-    // a.print();
-    // let a = list.pop_front().unwrap();
-    // a.print();
+    use battleship_game::models::common::{Square, Ship, Game};
+
+    // declaring custom event struct
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        Hit: Hit,
+        Missed: Missed,
+        Sinked: Sinked
+    }
+
+    // declaring custom event struct
+    #[derive(Drop, starknet::Event)]
+    struct Hit {
+        player: ContractAddress,
+        square: Square
+    }
+
+    // declaring custom event struct
+    #[derive(Drop, starknet::Event)]
+    struct Missed {
+        player: ContractAddress,
+        square: Square
+    }
+
+    // declaring custom event struct
+    #[derive(Drop, starknet::Event)]
+    struct Sinked {
+        player: ContractAddress,
+        ship: Ship
+    }
+
+    // impl: implement functions specified in trait
+    #[external(v0)]
+    impl ActionsImpl of IActions<ContractState> {
+        fn attack(self: @ContractState, game_id: felt252, list: Array<u8>) {
+            // Access the world dispatcher for reading.
+            let world = self.world_dispatcher.read();
+
+            // Get the address of the current caller, possibly the player's address.
+            let player = get_caller_address();
+
+            let game: Game = get!(world, (game_id), (Game));
+            game.print();
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use starknet::class_hash::Felt252TryIntoClassHash;
+
+    // import world dispatcher
+    use dojo::world::{IWorldDispatcher, IWorldDispatcherTrait};
+
+    // import test utils
+    use dojo::test_utils::{spawn_test_world, deploy_contract};
+
+    // import actions
+    use super::{actions, IActionsDispatcher, IActionsDispatcherTrait};
     use core::option::OptionTrait;
     use core::debug::PrintTrait;
     use starknet::ContractAddress;
@@ -30,14 +81,11 @@ mod tests {
     use core::traits::Into;
     use core::array::SpanTrait;
 
-    use dojo::test_utils::spawn_test_world;
-    use dojo::world::{IWorldDispatcherTrait, IWorldDispatcher};
-
-    use battleship_game::components::common::{
+    // import models
+    use battleship_game::models::common::{
         Game, game, GameTurn, game_turn, GameStatus, Team, Ship, Square, TeamIntoFelt
     };
-    use battleship_game::components::blueteam::{BlueFleet, BlueGrid};
-    use battleship_game::systems::{initiate_system, preparation_system, attack_system};
+    use battleship_game::models::blueteam::{BlueFleet, BlueGrid};
 
     fn get_first() -> ContractAddress {
         starknet::contract_address_const::<0x01>()
@@ -49,33 +97,30 @@ mod tests {
         pedersen::pedersen(get_first().into(), get_second().into())
     }
 
-    fn init() -> IWorldDispatcher {
+    fn init() -> (IWorldDispatcher, IActionsDispatcher) {
         let first = get_first();
         let second = get_second();
 
-        // components
-        let mut components = array::ArrayTrait::new();
-        components.append(game::TEST_CLASS_HASH);
-        components.append(game_turn::TEST_CLASS_HASH);
+        // models
+        let mut models = array::ArrayTrait::new();
+        models.append(game::TEST_CLASS_HASH);
+        models.append(game_turn::TEST_CLASS_HASH);
 
-        //systems
-        let mut systems = array::ArrayTrait::new();
-        systems.append(initiate_system::TEST_CLASS_HASH);
-        systems.append(preparation_system::TEST_CLASS_HASH);
-        systems.append(attack_system::TEST_CLASS_HASH);
-        let world = spawn_test_world(components, systems);
+        // deploy world with models
+        let world = spawn_test_world(models);
 
-        let mut calldata = array::ArrayTrait::<core::felt252>::new();
-        calldata.append(first.into());
-        calldata.append(second.into());
-        world.execute('initiate_system'.into(), calldata);
-        world
+        // deploy systems contract
+        let contract_address = world
+            .deploy_contract('salt', actions::TEST_CLASS_HASH.try_into().unwrap());
+        let actions_system = IActionsDispatcher { contract_address };
+
+        (world, actions_system)
     }
 
     #[test]
     #[available_gas(20000000000000)]
     fn testttt() {
-        let world = init();
+        let (world, actions_system) = init();
         let first = get_first();
         let second = get_second();
         let id = game_id();
@@ -89,8 +134,6 @@ mod tests {
         // calldata.append(1.into());
         // calldata.append(1.into());
 
-        // 'calldata'.print();
-        world.execute('attack_system'.into(), calldata);
-    // 'atacck called'.print();
+        actions_system.attack(id, array![1, 1, 1, 1, 1]);
     }
 }
