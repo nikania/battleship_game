@@ -14,7 +14,7 @@ mod actions {
 
     use super::IActions;
 
-    use battleship_game::models::common::{Square, Ship, Game};
+    use battleship_game::models::common::{Square, Ship, Game, GameStatus};
 
     // declaring custom event struct
     #[event]
@@ -57,13 +57,20 @@ mod actions {
             let player = get_caller_address();
 
             let game: Game = get!(world, (game_id), (Game));
-            game.print();
+            assert(game.status == GameStatus::Battle, 'game not ready');
+        // game.print(); // sozo build throws error, but sozo test - no
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use core::option::OptionTrait;
+    use core::debug::PrintTrait;
+    use starknet::ContractAddress;
+    use array::ArrayTrait;
+    use core::traits::Into;
+    use core::array::SpanTrait;
     use starknet::class_hash::Felt252TryIntoClassHash;
 
     // import world dispatcher
@@ -74,12 +81,6 @@ mod tests {
 
     // import actions
     use super::{actions, IActionsDispatcher, IActionsDispatcherTrait};
-    use core::option::OptionTrait;
-    use core::debug::PrintTrait;
-    use starknet::ContractAddress;
-    use array::ArrayTrait;
-    use core::traits::Into;
-    use core::array::SpanTrait;
 
     // import models
     use battleship_game::models::common::{
@@ -117,22 +118,16 @@ mod tests {
         (world, actions_system)
     }
 
+    fn get_ready(world: IWorldDispatcher) {}
+
     #[test]
+    #[should_panic]
     #[available_gas(20000000000000)]
-    fn testttt() {
+    fn game_not_ready() {
         let (world, actions_system) = init();
         let first = get_first();
         let second = get_second();
         let id = game_id();
-
-        let mut calldata = array::ArrayTrait::<core::felt252>::new();
-        calldata.append(id);
-        calldata.append(first.into());
-
-        // calldata.append(1.into()); //not sure how to pass array to 'execute()' function
-        // calldata.append(1.into());
-        // calldata.append(1.into());
-        // calldata.append(1.into());
 
         actions_system.attack(id, array![1, 1, 1, 1, 1]);
     }

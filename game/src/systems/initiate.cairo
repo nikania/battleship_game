@@ -1,127 +1,171 @@
-// #[system]
-// mod initiate_system {
-//     use dojo::world::Context;
-//     use starknet::ContractAddress;
-//     use debug::PrintTrait;
+use dojo::world::{IWorldDispatcher, IWorldDispatcherTrait};
+use starknet::{ContractAddress, ClassHash};
 
-//     use battleship_game::components::common::{Game, GameTurn, Team, GameStatus, Square, Shot};
-//     use battleship_game::components::blueteam::{BlueGrid, BlueOpponentGrid, BlueFleet, BlueReady};
+// define the interface
+#[starknet::interface]
+trait IStart<TContractState> {
+    fn start_game(self: @TContractState, player: ContractAddress, opponent: ContractAddress);
+}
 
-//     fn execute(ctx: Context, blue: ContractAddress, red: ContractAddress) {
-//         let game_id = pedersen::pedersen(blue.into(), red.into());
+#[dojo::contract]
+mod start {
+    use starknet::{ContractAddress, get_caller_address};
+    use core::debug::PrintTrait;
 
-//         set!(
-//             ctx.world,
-//             Game { game_id, winner: Option::None, status: GameStatus::Preparation, blue, red }
-//         );
+    use super::IStart;
 
-//         set!(ctx.world, GameTurn { game_id, attacker: Team::Blue });
+    use battleship_game::models::common::{Game, GameTurn, Team, GameStatus, Square, Shot, Ship};
+    use battleship_game::models::blueteam::{BlueGrid, BlueOpponentGrid, BlueFleet, BlueReady};
 
-//         // TODO prepare empty waters
-//         let mut y: u8 = 0;
-//         loop {
-//             if y > 3 {
-//                 break;
-//             }
-//             set!(
-//                 ctx.world,
-//                 (
-//                     BlueGrid { square: Square { game_id, x: 0, y }, ship: Option::None },
-//                     BlueGrid { square: Square { game_id, x: 1, y }, ship: Option::None },
-//                     BlueGrid { square: Square { game_id, x: 2, y }, ship: Option::None },
-//                     BlueGrid { square: Square { game_id, x: 3, y }, ship: Option::None },
-//                 )
-//             );
-//             y += 1;
-//         };
-//         // TODO prepare unnown opponent waters
-//         let mut y: u8 = 0;
-//         loop {
-//             if y > 3 {
-//                 break;
-//             }
-//             set!(
-//                 ctx.world,
-//                 (
-//                     BlueOpponentGrid { square: Square { game_id, x: 0, y }, shot: Shot::Unknown },
-//                     BlueOpponentGrid { square: Square { game_id, x: 1, y }, shot: Shot::Unknown },
-//                     BlueOpponentGrid { square: Square { game_id, x: 2, y }, shot: Shot::Unknown },
-//                     BlueOpponentGrid { square: Square { game_id, x: 3, y }, shot: Shot::Unknown },
-//                 )
-//             );
-//             y += 1;
-//         };
 
-//         // todo set fleets
-//         // set!(ctx.world, (BlueFleet { game_id, carrier: 1, battleship: 2, submarine: 3, boat: 4 }));
+    // impl: implement functions specified in trait
+    #[external(v0)]
+    impl StartImpl of IStart<ContractState> {
+        fn start_game(self: @ContractState, player: ContractAddress, opponent: ContractAddress) {
+            // Access the world dispatcher for reading.
+            let world = self.world_dispatcher.read();
 
-//         // not ready for battle
-//         set!(ctx.world, (BlueReady { game_id, ready: false }));
-//     }
-// }
+            // Get the address of the current caller, possibly the player's address.
+            // let caller = get_caller_address();
+            // assert(caller == player, 'caller not player'); 
 
-// #[cfg(test)]
-// mod tests {
-//     use core::debug::PrintTrait;
-//     use starknet::ContractAddress;
-//     use array::ArrayTrait;
-//     use core::traits::Into;
-//     use core::array::SpanTrait;
+            let game_id = pedersen::pedersen(player.into(), opponent.into());
 
-//     use dojo::test_utils::spawn_test_world;
-//     use dojo::world::{IWorldDispatcherTrait, IWorldDispatcher};
+            set!(
+                world,
+                Game {
+                    game_id,
+                    winner: Team::None,
+                    status: GameStatus::Preparation,
+                    blue: player,
+                    red: opponent
+                }
+            );
 
-//     use battleship_game::components::common::{
-//         Game, game, GameTurn, game_turn, Square, GameStatus, Team, Shot
-//     };
-//     use battleship_game::systems::initiate_system;
-//     use battleship_game::components::blueteam::{BlueGrid, BlueOpponentGrid, BlueFleet, BlueReady};
+            set!(world, GameTurn { game_id, attacker: Team::Blue });
 
-//     #[test]
-//     #[available_gas(200000000000000000)]
-//     fn create_game_correct() {
-//         let first = starknet::contract_address_const::<0x01>();
-//         let second = starknet::contract_address_const::<0x02>();
+            // TODO prepare empty waters
+            let mut y: u8 = 0;
+            loop {
+                if y > 3 {
+                    break;
+                }
+                set!(
+                    world,
+                    (
+                        BlueGrid { square: Square { game_id, x: 0, y }, ship: Ship::None },
+                        BlueGrid { square: Square { game_id, x: 1, y }, ship: Ship::None },
+                        BlueGrid { square: Square { game_id, x: 2, y }, ship: Ship::None },
+                        BlueGrid { square: Square { game_id, x: 3, y }, ship: Ship::None },
+                    )
+                );
+                y += 1;
+            };
+            // TODO prepare unnown opponent waters
+            let mut y: u8 = 0;
+            loop {
+                if y > 3 {
+                    break;
+                }
+                set!(
+                    world,
+                    (
+                        BlueOpponentGrid {
+                            square: Square { game_id, x: 0, y }, shot: Shot::Unknown
+                        },
+                        BlueOpponentGrid {
+                            square: Square { game_id, x: 1, y }, shot: Shot::Unknown
+                        },
+                        BlueOpponentGrid {
+                            square: Square { game_id, x: 2, y }, shot: Shot::Unknown
+                        },
+                        BlueOpponentGrid {
+                            square: Square { game_id, x: 3, y }, shot: Shot::Unknown
+                        },
+                    )
+                );
+                y += 1;
+            };
 
-//         // components
-//         let mut components = array::ArrayTrait::new();
-//         components.append(game::TEST_CLASS_HASH);
-//         components.append(game_turn::TEST_CLASS_HASH);
+            // todo set fleets
+            // set!(world, (BlueFleet { game_id, carrier: 1, battleship: 2, submarine: 3, boat: 4 }));
 
-//         //systems
-//         let mut systems = array::ArrayTrait::new();
-//         systems.append(initiate_system::TEST_CLASS_HASH);
-//         let world = spawn_test_world(components, systems);
+            // not ready for battle
+            set!(world, (BlueReady { game_id, ready: false }));
+        }
+    }
+}
 
-//         let mut calldata = array::ArrayTrait::<core::felt252>::new();
-//         calldata.append(first.into());
-//         calldata.append(second.into());
-//         world.execute('initiate_system'.into(), calldata);
+#[cfg(test)]
+mod tests {
+    use core::option::OptionTrait;
+    use core::debug::PrintTrait;
+    use starknet::ContractAddress;
+    use array::ArrayTrait;
+    use core::traits::Into;
+    use core::array::SpanTrait;
+    use starknet::class_hash::Felt252TryIntoClassHash;
 
-//         let game_id = pedersen::pedersen(first.into(), second.into());
+    // import world dispatcher
+    use dojo::world::{IWorldDispatcher, IWorldDispatcherTrait};
 
-//         let game: Game = get!(world, (game_id), (Game));
-//         assert(game.status == GameStatus::Preparation, 'status should be prep');
-//         assert(game.winner == Option::None, 'should be no winner');
-//         assert(game.blue == first, 'should be first');
-//         assert(game.red == second, 'should be second');
+    // import test utils
+    use dojo::test_utils::{spawn_test_world, deploy_contract};
 
-//         let game_turn = get!(world, (game_id), (GameTurn));
-//         assert(game_turn.attacker == Team::Blue, 'Blue player first turn');
+    // import actions
+    use super::{start, IStartDispatcher, IStartDispatcherTrait};
 
-//         let bluegrid78 = get!(world, (Square { game_id, x: 3, y: 0 }), (BlueGrid));
-//         assert(bluegrid78.ship == Option::None, 'square not empty');
+    use battleship_game::models::common::{
+        Game, game, GameTurn, game_turn, Square, GameStatus, Team, Shot, Ship
+    };
+    use battleship_game::models::blueteam::{BlueGrid, BlueOpponentGrid, BlueFleet, BlueReady};
 
-//         let blueoppgrid49 = get!(world, (Square { game_id, x: 3, y: 3 }), (BlueOpponentGrid));
-//         assert(blueoppgrid49.shot == Shot::Unknown, 'square not unnknown');
+    #[test]
+    #[available_gas(200000000000000000)]
+    fn create_game_correct() {
+        let first = starknet::contract_address_const::<0x01>();
+        let second = starknet::contract_address_const::<0x02>();
 
-//         let blueready: BlueReady = get!(world, (game_id), (BlueReady));
-//         assert(!blueready.ready, 'should be not ready');
-//     // let bluefleet: BlueFleet = get!(world, (game_id), (BlueFleet));
-//     // assert(bluefleet.carrier == 1, 'carrier wrong count');
-//     // assert(bluefleet.battleship == 2, 'battleship wrong count');
-//     // assert(bluefleet.submarine == 3, 'submarine wrong count');
-//     // assert(bluefleet.boat == 4, 'boat wrong count');
-//     }
-// }
+        // components
+        let mut models = array::ArrayTrait::new();
+        models.append(game::TEST_CLASS_HASH);
+        models.append(game_turn::TEST_CLASS_HASH);
+
+        // deploy world with models
+        let world = spawn_test_world(models);
+
+        // deploy systems contract
+        let contract_address = world
+            .deploy_contract('salt', start::TEST_CLASS_HASH.try_into().unwrap());
+        let start_system = IStartDispatcher { contract_address };
+
+        start_system.start_game(first, second);
+
+        let game_id = pedersen::pedersen(first.into(), second.into());
+
+        let game: Game = get!(world, (game_id), (Game));
+        // game.print();
+        assert(game.status == GameStatus::Preparation, 'status should be prep');
+        assert(game.winner == Team::None, 'should be no winner');
+        assert(game.blue == first, 'should be first');
+        assert(game.red == second, 'should be second');
+
+        let game_turn = get!(world, (game_id), (GameTurn));
+        assert(game_turn.attacker == Team::Blue, 'Blue player first turn');
+
+        let bluegrid78 = get!(world, (Square { game_id, x: 3, y: 0 }), (BlueGrid));
+        assert(bluegrid78.ship == Ship::None, 'square not empty');
+
+        let blueoppgrid49 = get!(world, (Square { game_id, x: 3, y: 3 }), (BlueOpponentGrid));
+        assert(blueoppgrid49.shot == Shot::Unknown, 'square not unnknown');
+
+        let blueready: BlueReady = get!(world, (game_id), (BlueReady));
+        assert(!blueready.ready, 'should be not ready');
+    // let bluefleet: BlueFleet = get!(world, (game_id), (BlueFleet));
+    // assert(bluefleet.carrier == 1, 'carrier wrong count');
+    // assert(bluefleet.battleship == 2, 'battleship wrong count');
+    // assert(bluefleet.submarine == 3, 'submarine wrong count');
+    // assert(bluefleet.boat == 4, 'boat wrong count');
+    }
+}
 

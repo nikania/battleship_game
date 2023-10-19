@@ -30,32 +30,23 @@ impl ShotPrintTrait of PrintTrait<Shot> {
     }
 }
 
-// impl OptionShotPrintTrait of PrintTrait<Option<Shot>> {
-//     fn print(self: Option<Shot>) {
-//         match self {
-//             Option::Some(s) => s.print(),
-//             Option::None => 'None'.print()
-//         }
-//     }
-// }
-
 #[derive(Model, Drop, Serde, Copy, PartialEq, Introspect, Print)]
 enum Ship {
+    None, // no ship
     Carrier, //1x4
     Battleship, //1x3
     Submarine, //1x2
     PatrolBoat, //1x1
-    None // no ship
 }
 
 impl ShipIntoFelf of Into<Ship, felt252> {
     fn into(self: Ship) -> felt252 {
         match self {
-            Ship::Carrier => 0,
-            Ship::Battleship => 1,
-            Ship::Submarine => 2,
-            Ship::PatrolBoat => 3,
-            Ship::None => 4,
+            Ship::None => 0,
+            Ship::Carrier => 1,
+            Ship::Battleship => 2,
+            Ship::Submarine => 3,
+            Ship::PatrolBoat => 4,
         }
     }
 }
@@ -63,11 +54,11 @@ impl ShipIntoFelf of Into<Ship, felt252> {
 impl ShipPrintTrait of PrintTrait<Ship> {
     fn print(self: Ship) {
         match self {
+            Ship::None => 'No ship'.print(),
             Ship::Carrier => 'Carrier'.print(),
             Ship::Battleship => 'Battleship'.print(),
             Ship::Submarine => 'Submarine'.print(),
             Ship::PatrolBoat => 'PatrolBoat'.print(),
-            Ship::None => 'No ship'.print()
         }
     }
 }
@@ -77,7 +68,6 @@ impl ShipPrintTrait of PrintTrait<Ship> {
 struct Game {
     #[key]
     game_id: felt252,
-    // winner: Option<Team>,
     winner: Team,
     status: GameStatus,
     blue: ContractAddress,
@@ -111,23 +101,23 @@ struct GameTurn {
 
 #[derive(Model, Drop, Serde, Copy, PartialEq, Introspect, Print)]
 enum Team {
+    None,
     Blue,
     Red,
-    None
 }
 
 impl TeamIntoFelt of Into<Team, felt252> {
     fn into(self: Team) -> felt252 {
         match self {
-            Team::Blue => {
+            Team::None => {
                 0
             },
-            Team::Red => {
+            Team::Blue => {
                 1
             },
-            Team::None => {
+            Team::Red => {
                 2
-            }
+            },
         }
     }
 }
@@ -135,52 +125,16 @@ impl TeamIntoFelt of Into<Team, felt252> {
 impl PlayersPrintTrait of PrintTrait<Team> {
     fn print(self: Team) {
         match self {
+            Team::None => {
+                'None player'.print();
+            },
             Team::Blue => {
                 'Blue player'.print();
             },
             Team::Red => {
                 'Red player'.print();
             },
-            Team::None => {
-                'None player'.print();
-            },
         }
     }
 }
-// impl OptionPlayersPrintTrait of PrintTrait<Option<Team>> {
-//     fn print(self: Option<Team>) {
-//         match self {
-//             Option::Some(p) => {
-//                 p.print()
-//             },
-//             Option::None => {
-//                 'None'.print()
-//             },
-//         }
-//     }
-// }
-
-// impl OptionTeamSchemaIntrospection of SchemaIntrospection<Option<Team>> {
-//     fn size() -> usize {
-//         1
-//     }
-//     fn layout(ref layout: Array<u8>) {
-//         layout.append(8);
-//     }
-//     fn ty() -> Ty {
-//         Ty::Enum(
-//             Enum {
-//                 name: 'OptionTeam',
-//                 attrs: array![].span(),
-//                 children: array![
-//                     ('Goalkeeper', serialize_member_type(@Ty::Tuple(array![].span()))),
-//                     ('Defender', serialize_member_type(@Ty::Tuple(array![].span()))),
-//                     ('Midfielder', serialize_member_type(@Ty::Tuple(array![].span()))),
-//                     ('Attacker', serialize_member_type(@Ty::Tuple(array![].span()))),
-//                 ]
-//                     .span(),
-//             }
-//         )
-//     }
-// }
 
