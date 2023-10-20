@@ -26,8 +26,8 @@ mod start {
             let world = self.world_dispatcher.read();
 
             // Get the address of the current caller, possibly the player's address.
-            // let caller = get_caller_address();
-            // assert(caller == player, 'caller not player'); 
+            let caller = get_caller_address();
+            assert(caller == player, 'caller not player');
 
             let game_id = pedersen::pedersen(player.into(), opponent.into());
 
@@ -105,6 +105,7 @@ mod tests {
     use core::traits::Into;
     use core::array::SpanTrait;
     use starknet::class_hash::Felt252TryIntoClassHash;
+    use starknet::testing::set_contract_address;
 
     // import world dispatcher
     use dojo::world::{IWorldDispatcher, IWorldDispatcherTrait};
@@ -138,7 +139,8 @@ mod tests {
         let contract_address = world
             .deploy_contract('salt', start::TEST_CLASS_HASH.try_into().unwrap());
         let start_system = IStartDispatcher { contract_address };
-
+        // to call contract from first address
+        set_contract_address(first);
         start_system.start_game(first, second);
 
         let game_id = pedersen::pedersen(first.into(), second.into());
@@ -166,6 +168,30 @@ mod tests {
     // assert(bluefleet.battleship == 2, 'battleship wrong count');
     // assert(bluefleet.submarine == 3, 'submarine wrong count');
     // assert(bluefleet.boat == 4, 'boat wrong count');
+    }
+
+    #[test]
+    #[available_gas(2000000000000)]
+    fn test_caller() {
+        let first = starknet::contract_address_const::<0x01>();
+        let second = starknet::contract_address_const::<0x02>();
+
+        // components
+        let mut models = array::ArrayTrait::new();
+        models.append(game::TEST_CLASS_HASH);
+        models.append(game_turn::TEST_CLASS_HASH);
+
+        // deploy world with models
+        let world = spawn_test_world(models);
+
+        // deploy systems contract
+        let contract_address = world
+            .deploy_contract('salt', start::TEST_CLASS_HASH.try_into().unwrap());
+        let start_system = IStartDispatcher { contract_address };
+        // to call contract from first address
+        set_contract_address(first);
+
+        start_system.start_game(first, second);
     }
 }
 

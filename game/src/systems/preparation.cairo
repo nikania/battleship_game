@@ -173,6 +173,7 @@ mod tests {
     use core::array::SpanTrait;
 
     use starknet::class_hash::Felt252TryIntoClassHash;
+    use starknet::testing::set_contract_address;
 
     // import world dispatcher
     use dojo::world::{IWorldDispatcher, IWorldDispatcherTrait};
@@ -217,7 +218,8 @@ mod tests {
         let contract_address = world
             .deploy_contract('salt', start::TEST_CLASS_HASH.try_into().unwrap());
         let start_system = IStartDispatcher { contract_address };
-
+        // to call contract from first address
+        set_contract_address(first);
         start_system.start_game(first, second);
         let contract_address = world
             .deploy_contract('salt', preparation::TEST_CLASS_HASH.try_into().unwrap());
