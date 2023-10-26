@@ -8,7 +8,7 @@ trait IStart<TContractState> {
 }
 
 #[dojo::contract]
-mod start {
+mod initiate {
     use starknet::{ContractAddress, get_caller_address};
     use core::debug::PrintTrait;
 
@@ -114,7 +114,7 @@ mod tests {
     use dojo::test_utils::{spawn_test_world, deploy_contract};
 
     // import actions
-    use super::{start, IStartDispatcher, IStartDispatcherTrait};
+    use super::{initiate, IStartDispatcher, IStartDispatcherTrait};
 
     use battleship_game::models::common::{
         Game, game, GameTurn, game_turn, Square, GameStatus, Team, Shot, Ship
@@ -137,7 +137,7 @@ mod tests {
 
         // deploy systems contract
         let contract_address = world
-            .deploy_contract('salt', start::TEST_CLASS_HASH.try_into().unwrap());
+            .deploy_contract('salt', initiate::TEST_CLASS_HASH.try_into().unwrap());
         let start_system = IStartDispatcher { contract_address };
         // to call contract from first address
         set_contract_address(first);
@@ -186,7 +186,7 @@ mod tests {
 
         // deploy systems contract
         let contract_address = world
-            .deploy_contract('salt', start::TEST_CLASS_HASH.try_into().unwrap());
+            .deploy_contract('salt', initiate::TEST_CLASS_HASH.try_into().unwrap());
         let start_system = IStartDispatcher { contract_address };
         // to call contract from first address
         set_contract_address(first);
