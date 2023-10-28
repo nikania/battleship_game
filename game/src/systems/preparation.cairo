@@ -28,7 +28,7 @@ mod preparation {
     use battleship_game::models::common::{
         Game, GameTurn, Team, GameStatus, Ship, Square, TeamIntoFelt
     };
-    use battleship_game::models::blueteam::{BlueFleet, BlueGrid, BlueReady};
+    use battleship_game::models::blueteam::{BlueGrid, BlueReady};
 
     // impl: implement functions specified in trait
     #[external(v0)]
@@ -183,7 +183,7 @@ mod tests {
 
     // import actions
     use super::{preparation, IPrepareDispatcher, IPrepareDispatcherTrait};
-    use battleship_game::systems::initiate::{start, IStartDispatcher, IStartDispatcherTrait};
+    use battleship_game::systems::initiate::{initiate, IStartDispatcher, IStartDispatcherTrait};
 
 
     use battleship_game::models::common::{
@@ -216,7 +216,7 @@ mod tests {
         // todo game should be created at first, how to check that
         // deploy systems contract
         let contract_address = world
-            .deploy_contract('salt', start::TEST_CLASS_HASH.try_into().unwrap());
+            .deploy_contract('salt', initiate::TEST_CLASS_HASH.try_into().unwrap());
         let start_system = IStartDispatcher { contract_address };
         // to call contract from first address
         set_contract_address(first);

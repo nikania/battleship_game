@@ -5,15 +5,15 @@ use dojo::database::schema::{
     Enum, Member, Ty, Struct, SchemaIntrospection, serialize_member, serialize_member_type
 };
 
-#[derive(Model, Drop, Serde, Copy, Print)]
-struct BlueFleet {
-    #[key]
-    game_id: felt252,
-    carrier: u8,
-    battleship: u8,
-    submarine: u8,
-    boat: u8,
-}
+// #[derive(Model, Drop, Serde, Copy, Print)]
+// struct BlueFleet {
+//     #[key]
+//     game_id: felt252,
+//     carrier: u8,
+//     battleship: u8,
+//     submarine: u8,
+//     boat: u8,
+// }
 
 use battleship_game::models::common::{Shot, ShotPrintTrait, Square, Ship, ShipPrintTrait};
 

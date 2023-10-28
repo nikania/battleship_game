@@ -15,7 +15,8 @@ mod initiate {
     use super::IStart;
 
     use battleship_game::models::common::{Game, GameTurn, Team, GameStatus, Square, Shot, Ship};
-    use battleship_game::models::blueteam::{BlueGrid, BlueOpponentGrid, BlueFleet, BlueReady};
+    use battleship_game::models::blueteam::{BlueGrid, BlueOpponentGrid, BlueReady};
+    use battleship_game::models::redteam::{RedGrid, RedOpponentGrid, RedReady};
 
 
     // impl: implement functions specified in trait
@@ -44,7 +45,7 @@ mod initiate {
 
             set!(world, GameTurn { game_id, attacker: Team::Blue });
 
-            // TODO prepare empty waters
+            // prepare own waters
             let mut y: u8 = 0;
             loop {
                 if y > 3 {
@@ -57,11 +58,15 @@ mod initiate {
                         BlueGrid { square: Square { game_id, x: 1, y }, ship: Ship::None },
                         BlueGrid { square: Square { game_id, x: 2, y }, ship: Ship::None },
                         BlueGrid { square: Square { game_id, x: 3, y }, ship: Ship::None },
+                        RedGrid { square: Square { game_id, x: 0, y }, ship: Ship::None },
+                        RedGrid { square: Square { game_id, x: 1, y }, ship: Ship::None },
+                        RedGrid { square: Square { game_id, x: 2, y }, ship: Ship::None },
+                        RedGrid { square: Square { game_id, x: 3, y }, ship: Ship::None },
                     )
                 );
                 y += 1;
             };
-            // TODO prepare unnown opponent waters
+            // prepare unnown opponent waters
             let mut y: u8 = 0;
             loop {
                 if y > 3 {
@@ -82,6 +87,18 @@ mod initiate {
                         BlueOpponentGrid {
                             square: Square { game_id, x: 3, y }, shot: Shot::Unknown
                         },
+                        RedOpponentGrid {
+                            square: Square { game_id, x: 0, y }, shot: Shot::Unknown
+                        },
+                        RedOpponentGrid {
+                            square: Square { game_id, x: 1, y }, shot: Shot::Unknown
+                        },
+                        RedOpponentGrid {
+                            square: Square { game_id, x: 2, y }, shot: Shot::Unknown
+                        },
+                        RedOpponentGrid {
+                            square: Square { game_id, x: 3, y }, shot: Shot::Unknown
+                        },
                     )
                 );
                 y += 1;
@@ -92,6 +109,7 @@ mod initiate {
 
             // not ready for battle
             set!(world, (BlueReady { game_id, ready: false }));
+            set!(world, (RedReady { game_id, ready: false }));
         }
     }
 }
