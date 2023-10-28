@@ -4,6 +4,7 @@ use starknet::{ContractAddress, ClassHash};
 // define the interface
 #[starknet::interface]
 trait IStart<TContractState> {
+    /// There are 2 players in the game. Each Player has 2 grids: their own and unknown opponent. Starting game creates 2 empty grids for each player.
     fn start_game(self: @TContractState, player: ContractAddress, opponent: ContractAddress);
 }
 
@@ -137,7 +138,7 @@ mod tests {
     use battleship_game::models::common::{
         Game, game, GameTurn, game_turn, Square, GameStatus, Team, Shot, Ship
     };
-    use battleship_game::models::blueteam::{BlueGrid, BlueOpponentGrid, BlueFleet, BlueReady};
+    use battleship_game::models::blueteam::{BlueGrid, BlueOpponentGrid, BlueReady};
 
     #[test]
     #[available_gas(200000000000000000)]

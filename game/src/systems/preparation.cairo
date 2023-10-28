@@ -6,6 +6,7 @@ use battleship_game::models::common::{Team, Ship};
 // define the interface
 #[starknet::interface]
 trait IPrepare<TContractState> {
+    /// in preparation phase, players place their ships on their own grid, Blue team on BlueGrid, Red team on RedGrid
     fn place_ship(
         self: @TContractState,
         game_id: felt252,
@@ -29,6 +30,7 @@ mod preparation {
         Game, GameTurn, Team, GameStatus, Ship, Square, TeamIntoFelt
     };
     use battleship_game::models::blueteam::{BlueGrid, BlueReady};
+    use battleship_game::models::redteam::{RedGrid, RedReady};
 
     // impl: implement functions specified in trait
     #[external(v0)]
@@ -47,9 +49,9 @@ mod preparation {
 
             // Get the address of the current caller, possibly the player's address.
             let player = get_caller_address();
-            // assert(player == addr, ''); // how check this in tests
+            assert(player == addr, 'addr not caller');
 
-            let game: Game = get!(world, (game_id), (Game));
+            let mut game: Game = get!(world, (game_id), (Game));
             initial_checks(@team, @game, @addr);
 
             let mut coord = check_coordinates(ship, init_coord, fin_coord);
@@ -70,8 +72,25 @@ mod preparation {
                 },
                 Team::Red => {
                     check_unoccupied(Team::Red, @coord);
+                    loop {
+                        let opt_coord = coord.pop_front();
+                        if opt_coord == Option::None {
+                            break;
+                        }
+                        let (x, y) = opt_coord.unwrap();
+                        set!(world, (RedGrid { square: Square { game_id, x, y }, ship }));
+                    };
+                    set!(world, (RedReady { game_id, ready: true }));
                 }
             };
+
+            // check if both teams are ready
+            let blueready: BlueReady = get!(world, (game_id), (BlueReady));
+            let redready: RedReady = get!(world, (game_id), (RedReady));
+            if blueready.ready && redready.ready {
+                game.status = GameStatus::Battle;
+                set!(world, (game));
+            }
         }
     }
 
@@ -82,14 +101,6 @@ mod preparation {
             Team::None => assert(false, 'should be some team'),
             Team::Blue => {
                 assert(game.blue == addr, 'wrong caller');
-            // let mut fleet = get!(world, (game.game_id), (BlueFleet));
-            // match ship {
-            //     // todo make possible replacements
-            //     Carrier => assert(fleet.carrier != 0, 'already placed'), //1x4
-            //     Battleship => assert(fleet.battleship != 0, 'already placed'), //1x3
-            //     Submarine => assert(fleet.submarine != 0, 'already placed'), //1x2
-            //     PatrolBoat => assert(fleet.boat != 0, 'already placed')
-            // }
             },
             Team::Red => {
                 assert(game.red == addr, 'wrong caller');
@@ -99,6 +110,7 @@ mod preparation {
 
     use array::ArrayTrait;
     fn check_coordinates(ship: Ship, init_coord: (u8, u8), fin_coord: (u8, u8)) -> Array<(u8, u8)> {
+        // check that coordinates are within 4x4 grid
         let (x1, y1) = init_coord;
         assert(x1 >= 0 && x1 < 4, 'init x coord wrong');
         assert(y1 >= 0 && y1 < 4, 'init x coord wrong');
@@ -189,7 +201,8 @@ mod tests {
     use battleship_game::models::common::{
         Game, game, GameTurn, game_turn, GameStatus, Team, Ship, Square, TeamIntoFelt
     };
-    use battleship_game::models::blueteam::{BlueFleet, BlueGrid, BlueReady};
+    use battleship_game::models::blueteam::{BlueGrid, BlueReady};
+    use battleship_game::models::redteam::{RedGrid, RedReady};
 
     fn first() -> ContractAddress {
         starknet::contract_address_const::<0x01>()
@@ -235,7 +248,8 @@ mod tests {
         let first = first();
         let second = second();
         let id = game_id();
-
+        // to call contract from first address
+        set_contract_address(first);
         prepare_system.place_ship(id, Team::Blue, first, Ship::PatrolBoat, (1, 1), (1, 1));
 
         let b2: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (BlueGrid));
@@ -249,12 +263,33 @@ mod tests {
 
     #[test]
     #[available_gas(20000000000000000)]
+    fn ship_placement_red_boat_correct() {
+        let (world, prepare_system) = init();
+        let first = first();
+        let second = second();
+        let id = game_id();
+        // to call contract from first address
+        set_contract_address(second);
+        prepare_system.place_ship(id, Team::Red, second, Ship::PatrolBoat, (1, 1), (1, 1));
+
+        let b2: RedGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (RedGrid));
+        let b3: RedGrid = get!(world, (Square { game_id: id, x: 1, y: 2 }), (RedGrid));
+        assert(b2.ship == Ship::PatrolBoat, '(1,1) not boat');
+        assert(b3.ship == Ship::None, '(1,2) not empty');
+
+        let blueready: RedReady = get!(world, (id), (RedReady));
+        assert(blueready.ready, 'should be ready');
+    }
+
+    #[test]
+    #[available_gas(20000000000000000)]
     fn ship_placement_submarine_correct() {
         let (world, prepare_system) = init();
         let first = first();
         let second = second();
         let id = game_id();
-
+        // to call contract from first address
+        set_contract_address(first);
         prepare_system.place_ship(id, Team::Blue, first, Ship::Submarine, (1, 1), (0, 1));
 
         let a2: BlueGrid = get!(world, (Square { game_id: id, x: 0, y: 1 }), (BlueGrid));
@@ -272,7 +307,8 @@ mod tests {
         let first = first();
         let second = second();
         let id = game_id();
-
+        // to call contract from first address
+        set_contract_address(first);
         prepare_system.place_ship(id, Team::Blue, first, Ship::Battleship, (2, 1), (0, 1));
 
         let a2: BlueGrid = get!(world, (Square { game_id: id, x: 0, y: 1 }), (BlueGrid));
@@ -283,6 +319,29 @@ mod tests {
         assert(b2.ship == Ship::Battleship, '(1,1) not battleship');
         assert(c2.ship == Ship::Battleship, '(1,1) not battleship');
         assert(b3.ship == Ship::None, '(1,2) not empty');
+    }
+
+    #[test]
+    #[available_gas(20000000000000000)]
+    fn both_team_placed_game_correct() {
+        let (world, prepare_system) = init();
+        let first = first();
+        let second = second();
+        let id = game_id();
+        // to call contract from first address
+        set_contract_address(first);
+        prepare_system.place_ship(id, Team::Blue, first, Ship::PatrolBoat, (1, 1), (1, 1));
+        set_contract_address(second);
+        prepare_system.place_ship(id, Team::Red, second, Ship::PatrolBoat, (1, 1), (1, 1));
+
+        let blueready: BlueReady = get!(world, (id), (BlueReady));
+        assert(blueready.ready, 'should be ready');
+
+        let blueready: RedReady = get!(world, (id), (RedReady));
+        assert(blueready.ready, 'should be ready');
+
+        let game: Game = get!(world, (id), (Game));
+        assert(game.status == GameStatus::Battle, 'should be battle');
     }
 }
 

@@ -86,7 +86,7 @@ mod tests {
     use battleship_game::models::common::{
         Game, game, GameTurn, game_turn, GameStatus, Team, Ship, Square, TeamIntoFelt
     };
-    use battleship_game::models::blueteam::{BlueFleet, BlueGrid};
+    use battleship_game::models::blueteam::{BlueGrid};
 
     fn get_first() -> ContractAddress {
         starknet::contract_address_const::<0x01>()
