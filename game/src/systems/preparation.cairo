@@ -10,8 +10,6 @@ trait IPrepare<TContractState> {
     fn place_ship(
         self: @TContractState,
         game_id: felt252,
-        team: Team,
-        addr: ContractAddress,
         ship: Ship,
         init_coord: (u8, u8),
         fin_coord: (u8, u8),
@@ -38,8 +36,6 @@ mod preparation {
         fn place_ship(
             self: @ContractState,
             game_id: felt252,
-            team: Team,
-            addr: ContractAddress,
             ship: Ship,
             init_coord: (u8, u8),
             fin_coord: (u8, u8),
@@ -49,10 +45,9 @@ mod preparation {
 
             // Get the address of the current caller, possibly the player's address.
             let player = get_caller_address();
-            assert(player == addr, 'addr not caller');
 
             let mut game: Game = get!(world, (game_id), (Game));
-            initial_checks(@team, @game, @addr);
+            let team = initial_checks(@game, @player);
 
             let mut coord = check_coordinates(ship, init_coord, fin_coord);
 
@@ -94,18 +89,18 @@ mod preparation {
         }
     }
 
-    fn initial_checks(team: @Team, game: @Game, addr: @ContractAddress) {
+    fn initial_checks(game: @Game, addr: @ContractAddress) -> Team {
         assert(*game.status == GameStatus::Preparation, 'Not allowed');
 
-        match team {
-            Team::None => assert(false, 'should be some team'),
-            Team::Blue => {
-                assert(game.blue == addr, 'wrong caller');
-            },
-            Team::Red => {
-                assert(game.red == addr, 'wrong caller');
-            },
-        };
+        if addr == game.blue {
+            return Team::Blue;
+        } else if (addr == game.red) {
+            return Team::Red;
+        } else {
+            assert(false, 'Not allowed');
+        }
+
+        return Team::None;
     }
 
     use array::ArrayTrait;
@@ -250,7 +245,7 @@ mod tests {
         let id = game_id();
         // to call contract from first address
         set_contract_address(first);
-        prepare_system.place_ship(id, Team::Blue, first, Ship::PatrolBoat, (1, 1), (1, 1));
+        prepare_system.place_ship(id, Ship::PatrolBoat, (1, 1), (1, 1));
 
         let b2: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (BlueGrid));
         let b3: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 2 }), (BlueGrid));
@@ -270,7 +265,7 @@ mod tests {
         let id = game_id();
         // to call contract from first address
         set_contract_address(second);
-        prepare_system.place_ship(id, Team::Red, second, Ship::PatrolBoat, (1, 1), (1, 1));
+        prepare_system.place_ship(id, Ship::PatrolBoat, (1, 1), (1, 1));
 
         let b2: RedGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (RedGrid));
         let b3: RedGrid = get!(world, (Square { game_id: id, x: 1, y: 2 }), (RedGrid));
@@ -290,7 +285,7 @@ mod tests {
         let id = game_id();
         // to call contract from first address
         set_contract_address(first);
-        prepare_system.place_ship(id, Team::Blue, first, Ship::Submarine, (1, 1), (0, 1));
+        prepare_system.place_ship(id, Ship::Submarine, (1, 1), (0, 1));
 
         let a2: BlueGrid = get!(world, (Square { game_id: id, x: 0, y: 1 }), (BlueGrid));
         let b2: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (BlueGrid));
@@ -309,7 +304,7 @@ mod tests {
         let id = game_id();
         // to call contract from first address
         set_contract_address(first);
-        prepare_system.place_ship(id, Team::Blue, first, Ship::Battleship, (2, 1), (0, 1));
+        prepare_system.place_ship(id, Ship::Battleship, (2, 1), (0, 1));
 
         let a2: BlueGrid = get!(world, (Square { game_id: id, x: 0, y: 1 }), (BlueGrid));
         let b2: BlueGrid = get!(world, (Square { game_id: id, x: 1, y: 1 }), (BlueGrid));
@@ -330,9 +325,9 @@ mod tests {
         let id = game_id();
         // to call contract from first address
         set_contract_address(first);
-        prepare_system.place_ship(id, Team::Blue, first, Ship::PatrolBoat, (1, 1), (1, 1));
+        prepare_system.place_ship(id, Ship::PatrolBoat, (1, 1), (1, 1));
         set_contract_address(second);
-        prepare_system.place_ship(id, Team::Red, second, Ship::PatrolBoat, (1, 1), (1, 1));
+        prepare_system.place_ship(id, Ship::PatrolBoat, (1, 1), (1, 1));
 
         let blueready: BlueReady = get!(world, (id), (BlueReady));
         assert(blueready.ready, 'should be ready');
@@ -342,6 +337,19 @@ mod tests {
 
         let game: Game = get!(world, (id), (Game));
         assert(game.status == GameStatus::Battle, 'should be battle');
+    }
+
+    #[test]
+    #[available_gas(20000000000)]
+    #[should_panic]
+    fn wrong_caller() {
+        let (world, prepare_system) = init();
+        let id = game_id();
+        let wrong_caller = starknet::contract_address_const::<0x03>();
+
+        // call contract from wrong address
+        set_contract_address(wrong_caller);
+        prepare_system.place_ship(id, Ship::PatrolBoat, (1, 1), (1, 1));
     }
 }
 
