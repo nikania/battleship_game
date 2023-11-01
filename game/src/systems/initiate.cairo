@@ -12,6 +12,7 @@ trait IStart<TContractState> {
 mod initiate {
     use starknet::{ContractAddress, get_caller_address};
     use core::debug::PrintTrait;
+    use core::traits::Into;
 
     use super::IStart;
 
@@ -19,6 +20,16 @@ mod initiate {
     use battleship_game::models::blueteam::{BlueGrid, BlueOpponentGrid, BlueReady};
     use battleship_game::models::redteam::{RedGrid, RedOpponentGrid, RedReady};
 
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        GameCreated: GameCreated,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct GameCreated {
+        game: Game,
+    }
 
     // impl: implement functions specified in trait
     #[external(v0)]
@@ -32,17 +43,15 @@ mod initiate {
             assert(caller == player, 'caller not player');
 
             let game_id = pedersen::pedersen(player.into(), opponent.into());
+            let game = Game {
+                game_id,
+                winner: Team::None,
+                status: GameStatus::Preparation,
+                blue: player,
+                red: opponent
+            };
 
-            set!(
-                world,
-                Game {
-                    game_id,
-                    winner: Team::None,
-                    status: GameStatus::Preparation,
-                    blue: player,
-                    red: opponent
-                }
-            );
+            set!(world, (game));
 
             set!(world, GameTurn { game_id, attacker: Team::Blue });
 
@@ -111,6 +120,8 @@ mod initiate {
             // not ready for battle
             set!(world, (BlueReady { game_id, ready: false }));
             set!(world, (RedReady { game_id, ready: false }));
+
+            emit!(world, GameCreated { game });
         }
     }
 }

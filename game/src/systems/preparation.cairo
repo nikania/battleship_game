@@ -21,6 +21,7 @@ trait IPrepare<TContractState> {
 mod preparation {
     use starknet::{ContractAddress, get_caller_address};
     use core::debug::PrintTrait;
+    use core::traits::Into;
 
     use super::IPrepare;
 
@@ -29,6 +30,30 @@ mod preparation {
     };
     use battleship_game::models::blueteam::{BlueGrid, BlueReady};
     use battleship_game::models::redteam::{RedGrid, RedReady};
+
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        ShipPlaced: ShipPlaced,
+        Ready: Ready,
+        GameReady: GameReady,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct Ready {
+        player: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct GameReady {
+        game: Game,
+    }
+
+    // todo how to conceal where ship is placed and what ship is placed
+    #[derive(Drop, starknet::Event)]
+    struct ShipPlaced {
+        player: ContractAddress,
+    }
 
     // impl: implement functions specified in trait
     #[external(v0)]
@@ -64,6 +89,7 @@ mod preparation {
                         set!(world, (BlueGrid { square: Square { game_id, x, y }, ship }));
                     };
                     set!(world, (BlueReady { game_id, ready: true }));
+                    emit!(world, Ready { player });
                 },
                 Team::Red => {
                     check_unoccupied(Team::Red, @coord);
@@ -76,8 +102,10 @@ mod preparation {
                         set!(world, (RedGrid { square: Square { game_id, x, y }, ship }));
                     };
                     set!(world, (RedReady { game_id, ready: true }));
+                    emit!(world, Ready { player });
                 }
             };
+            // emit!(world, ShipPlaced { player });
 
             // check if both teams are ready
             let blueready: BlueReady = get!(world, (game_id), (BlueReady));
@@ -85,6 +113,7 @@ mod preparation {
             if blueready.ready && redready.ready {
                 game.status = GameStatus::Battle;
                 set!(world, (game));
+                emit!(world, GameReady { game });
             }
         }
     }

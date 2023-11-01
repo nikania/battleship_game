@@ -11,6 +11,7 @@ trait IActions<TContractState> {
 mod actions {
     use starknet::{ContractAddress, get_caller_address};
     use core::debug::PrintTrait;
+    use core::traits::Into;
 
     use super::IActions;
 
@@ -58,7 +59,8 @@ mod actions {
 
             let game: Game = get!(world, (game_id), (Game));
             assert(game.status == GameStatus::Battle, 'game not ready');
-        // game.print(); // sozo build throws error, but sozo test - no
+            // game.print(); // sozo build throws error, but sozo test - no
+            emit!(world, Missed { player, square: Square { game_id, x: 1, y: 1 } });
         }
     }
 }
